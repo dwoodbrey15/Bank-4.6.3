@@ -1,0 +1,191 @@
+{
+  "schema": "banknet-small-1",
+  "version": "4.6.3",
+  "runtime": "Offline JavaScript, float32 arrays and Web Workers; no external libraries",
+  "tableSizes": {
+    "min": 2,
+    "max": 12
+  },
+  "roundLengths": [
+    10,
+    15,
+    20
+  ],
+  "parameterCount": 5762,
+  "architecture": {
+    "inputs": 88,
+    "globals": 44,
+    "sortedPublicOpponentSlots": 11,
+    "slotWidth": 4,
+    "policy": [
+      88,
+      32,
+      1
+    ],
+    "value": [
+      88,
+      32,
+      1
+    ],
+    "sharedTrainableWeights": false,
+    "outputs": [
+      "bankPolicyPreference",
+      "trainingPolicyWinShare"
+    ],
+    "actionSelection": "BANK preference >=0.5 except exact rule overrides",
+    "valuePrior": "sigmoid(logit - log(opponentCount))",
+    "initialization": "Policy first hidden unit is tanh(2*(normalizedPot-normalized300)); output weight4. Other policy output weights zero, remaining hidden weights seeded random. All weights trainable. Explicit own-action prior, not learned strength or opponent habit model."
+  },
+  "globals": [
+    "asinh(pot/100)/4",
+    "remainingRounds/20",
+    "totalRounds/20",
+    "round/20",
+    "playerCount/12",
+    "activeFraction",
+    "safePhase",
+    "asinh(rollCount)/4",
+    "normalizedOwnScore",
+    "normalizedHighestRivalGap",
+    "normalizedPotMinusStrictLeadTarget",
+    "ownActive",
+    "nextBustProbability",
+    "doublesProbability",
+    "strictLeadReachLower",
+    "strictLeadReachUpper",
+    "strictLeadReachExact",
+    "tieTargetReachLower",
+    "tieTargetReachUpper",
+    "nextDangerRollStrictLeadProbability",
+    "bankingWouldStrictlyLead",
+    "rivalsAheadFraction",
+    "activeRivalsAheadFraction",
+    "normalizedHighestActiveRivalGap",
+    "lastBankExists",
+    "rankFraction",
+    "winShareIfBustNow",
+    "normalizedHighestBankedRivalGap",
+    "finalRound",
+    "lastActive",
+    "tiedWithHighestRival",
+    "highestRivalTieFraction",
+    "fairShareBaseline",
+    "activeRivalFraction",
+    "fractionRivalsBelowBankNowScore",
+    "winShareIfEveryoneBanksCurrentPot",
+    "normalizedPotentialLeaderGap",
+    "doublePotReachLower",
+    "doublePotReachUpper",
+    "meanNormalizedRivalGap",
+    "activeRivalsTiedOrAheadFraction",
+    "logRemainingRoundsAfterThis",
+    "lastBankIsOwnSeat",
+    "reachStrictlyAheadOfBankedRivalsLower"
+  ],
+  "opponentFeatures": [
+    "normalizedScoreGap",
+    "active",
+    "normalizedBankedThisRound",
+    "slotPresent"
+  ],
+  "exactFeatures": {
+    "targetRecurrence": "h(p) = [6*h(2p) + sum(count[s]*h(p+s))]/36, h(p>=target)=1; bust contribution is zero",
+    "nonDoubleSums": [
+      3,
+      4,
+      5,
+      6,
+      8,
+      9,
+      10,
+      11
+    ],
+    "counts": [
+      2,
+      2,
+      4,
+      4,
+      4,
+      4,
+      2,
+      2
+    ],
+    "exactTargetLimit": 2048,
+    "largerTargets": "Integer grid lower/upper bounds, approximately 512 cells",
+    "cacheEntries": 96,
+    "scoreArithmetic": "Safe integer Number, then BigInt promotion",
+    "ruleOverrides": [
+      "Final-round last-active optimal stopping",
+      "Two-player strict-lead preservation by public bank matching",
+      "Final-round strict-lead shadowing with one active rival"
+    ]
+  },
+  "training": {
+    "algorithm": "Original v4.6 synchronous data-parallel PPO",
+    "gamesPerCollection": 144,
+    "options": [
+      24,
+      36,
+      48,
+      144
+    ],
+    "epochs": 2,
+    "adamSteps": "Multiple per collection across two epochs, each averaging up to 864 positions",
+    "learningRate": 0.001,
+    "warmupLR": 0.0002,
+    "warmupSamples": 8192,
+    "warmupMinimumUpdates": 8,
+    "gaeLambda": 0.95,
+    "policyClip": 0.2,
+    "entropyCoefficient": 0.015,
+    "valueLoss": ".5 * BCE terminal win share, separate value network",
+    "teacherAnchorAfterWarmup": 0,
+    "syntheticStarts": 0.1,
+    "opponents": "Scripted only: original bankbench-46 eight families and seven bases, each uniform, constant throughout training; one learning seat per game",
+    "poolDefault": "scripts-bankbench-46-v1",
+    "storageKey": "current-banknet-small-adam144-1; copies current-banknet-small-ppo-1 on first use",
+    "guards": "Original per-minibatch sampled KL and full-epoch Bernoulli KL stop/rollback thresholds",
+    "log": "Per-update seeds, optimizer step and step count, stage, LR, KL, flips, entropy, bank frequency, guard restores, pool fingerprints, benchmark restores",
+    "noSelfPlayOrSnapshots": true,
+    "learningRateOptions": [
+      2e-05,
+      5e-05,
+      0.0001,
+      0.0003,
+      0.001,
+      0.002
+    ],
+    "optimizerBatchTarget": 864,
+    "gradientMicroBatchLimit": 288,
+    "minibatches": "Global epoch shuffle with balanced sizes, independent of worker count; no discarded or tiny remainder; each sample used once per epoch",
+    "gradientAccumulation": "Raw worker gradient sums at identical weights, divided by actual total positions, norm clipped once, one Adam step per accumulated minibatch; multiple minibatches per collection",
+    "optimizer": "Unchanged Adam beta1=0.9 beta2=0.999 eps=1e-8; existing moments and step retained",
+    "checkpointCompatibility": "Same banknet-small-1 architecture and optimizer arrays as v4.6.2. Old trainer settings migrate to 144 games without altering weights or Adam state."
+  },
+  "evaluation": {
+    "games": [
+      132,
+      660,
+      1800,
+      10000
+    ],
+    "cells": "Selected table-size range x 10/15/20 rounds; default 3\u20138 players",
+    "reference": "Threshold heuristic, not full v3.5 engine",
+    "comparison": "Original v4.6 fixtures with fresh confirmation and best restoration, plus optional imported original network reference on identical fixtures.",
+    "status": "Exploratory; not proof of strength",
+    "defaultGames": 10000
+  },
+  "status": "Experimental training refinement for the unchanged smaller architecture. v4.6.2 smaller-network checkpoints continue training with their weights and optimizer intact; original Bank Net 2 checkpoints remain benchmark references only.",
+  "includedExample": {
+    "file": "example-checkpoint.json",
+    "trainingGames": 10800,
+    "trainingUpdates": 300,
+    "officialBenchmarkGames": 10000,
+    "officialWinShare": 0.4472122619047618,
+    "freshBenchmarkGames": 10000,
+    "freshWinShare": 0.4429510714285715,
+    "samplingHalfWidth95pp": 0.965,
+    "optimizer": "Starts fresh; trained weights retained.",
+    "claim": "Included weights are unchanged from v4.6.2; their existing scores do not establish a benefit from the new training method."
+  }
+}
